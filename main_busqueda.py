@@ -1,7 +1,7 @@
 import pandas as pd
 from sentence_transformers import SentenceTransformer, util
 
-def main(query):
+def main():
     # Cargar el archivo CSV que contiene información sobre las películas de IMDB
     df = pd.read_csv('./IMDB top 1000.csv')
 
@@ -13,10 +13,6 @@ def main(query):
     # Añadir los vectores como una nueva columna en el DataFrame
     df['embeddings'] = embeddings.tolist()
 
-    # Convertir la consulta del usuario en un vector (embedding)
-    query_embedding = model.encode([query])[0]
-
-    # Definir una función para calcular la similitud entre un embedding de película y la consulta
     def compute_similarity(example, query_embedding):
         # Obtener el embedding de la película del DataFrame
         embedding = example['embeddings']
@@ -24,20 +20,31 @@ def main(query):
         similarity = util.cos_sim(embedding, query_embedding).item()
         return similarity
 
-    # Aplicar la función de similitud a cada fila del DataFrame y guardar los resultados en una nueva columna 'similarity'
-    df['similarity'] = df.apply(lambda x: compute_similarity(x, query_embedding), axis=1)
+    while True:
+        # Solicitar el término de búsqueda al usuario
+        query = input('Ingresa el término de búsqueda (o escribe "salir" para terminar): ')
+        
+        # Comprobar si el usuario desea salir
+        if query.lower() == "salir":
+            print("Saliendo del programa.")
+            break
+        
+        # Convertir la consulta del usuario en un vector (embedding)
+        query_embedding = model.encode([query])[0]
 
-    # Ordenar el DataFrame por la columna de similitud de mayor a menor
-    df = df.sort_values(by='similarity', ascending=False)
+        # Aplicar la función de similitud a cada fila del DataFrame y guardar los resultados en una nueva columna 'similarity'
+        df['similarity'] = df.apply(lambda x: compute_similarity(x, query_embedding), axis=1)
 
-    # Mostrar los títulos de las 5 películas más similares a la consulta
-    print(df.head()['Title'])
+        # Ordenar el DataFrame por la columna de similitud de mayor a menor
+        df = df.sort_values(by='similarity', ascending=False)
 
-    # TODO: Completar esta función para realizar búsquedas semánticas con base en el código del archivo test.ipynb
+        # Mostrar los títulos de las 5 películas más similares a la consulta
+        print("Películas más similares a tu búsqueda:")
+        print(df.head()['Title'])
+
+        # Agregar una pausa antes de la siguiente iteración
+        print("\nPuedes realizar otra búsqueda o escribe 'salir' para terminar.")
 
 # Comprobar si el script se está ejecutando directamente
 if __name__ == '__main__':
-    # Solicitar al usuario que ingrese un término de búsqueda
-    query = input('Ingresa el término de búsqueda: ')
-    # Llamar a la función principal con la consulta ingresada
-    main(query)
+    main()
